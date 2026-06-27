@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Exchange – Board Game Companion</title>
+<link rel="stylesheet" href="stock_exchange.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Stock Exchange</div>
+  <button class="nav-btn active" onclick="goto('market')">Market</button>
+  <button class="nav-btn" onclick="goto('players')">Players</button>
+  <button class="nav-btn" onclick="goto('bank')">Bank</button>
+  <button class="nav-btn" onclick="goto('calc')">Calc</button>
+  <div class="nav-game-badge" onclick="openGameOverlay()" title="Switch Game">
+    &#127918; <span id="nav-game-name">No Game</span>
+  </div>
+  <div id="sync-status" class="sync-status offline" title="Firebase connection status">
+    <span class="sync-dot"></span><span id="sync-status-text">Local only</span>
+  </div>
+</nav>
+<div id="toast"></div>
+
+<!-- GAME OVERLAY -->
+<div id="game-overlay">
+  <div class="gob">
+    <h2>&#127918; Games</h2>
+    <div class="game-list" id="game-list"></div>
+    <div class="ngf">
+      <h3>Create New Game</h3>
+      <div style="display:flex;gap:8px;align-items:flex-end;">
+        <div style="flex:1;">
+          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px;">Game Name</label>
+          <input type="text" id="new-game-name" placeholder="e.g. Saturday Night" maxlength="30">
+        </div>
+        <button class="btn" onclick="createGame()">Create</button>
+        <button class="btn btn-ghost" onclick="closeGameOverlay()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MARKET -->
+<div id="page-market" class="page active">
+  <div id="market-game-bar" class="game-info-bar" style="display:none;">
+    <div>
+      <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Active Game</div>
+      <div id="market-game-name" style="font-family:'IBM Plex Mono',monospace;font-size:1.05rem;font-weight:700;color:var(--accent);"></div>
+      <div id="market-game-sub" style="font-size:.73rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:2px;"></div>
+    </div>
+    <button class="btn btn-sm btn-ghost" onclick="openGameOverlay()">Switch Game</button>
+  </div>
+  <div id="no-game-market" class="empty" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:20px;">
+    No active game.&nbsp;<button class="btn btn-sm" onclick="openGameOverlay()">Create or Select a Game</button>
+  </div>
+  <div class="ticker-wrap">
+    <div class="ticker-label">LIVE</div>
+    <div class="ticker-scroll"><div class="ticker-inner" id="ticker"></div></div>
+  </div>
+  <h2>Share Prices</h2>
+  <div class="cards" id="price-cards"></div>
+  <h2>Leaderboard</h2>
+  <div id="leaderboard"></div>
+  <h2>Activity Log</h2>
+  <div class="log-feed" id="log-feed"><div class="empty">No activity yet.</div></div>
+</div>
+
+<!-- PLAYERS -->
+<div id="page-players" class="page">
+  <div id="player-lobby">
+    <h2>Select Your Name</h2>
+    <div id="no-game-players" class="empty" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:20px;">
+      No active game.&nbsp;<button class="btn btn-sm" onclick="openGameOverlay()">Select a Game</button>
+    </div>
+    <div class="player-list" id="player-list"></div>
+    <div class="empty" id="no-players" style="display:none">No players yet. Ask the banker to add players.</div>
+  </div>
+  <div id="player-detail" class="player-detail">
+    <button class="back-btn" onclick="showLobby()">&#8592; Back</button>
+    <div class="pd-header">
+      <div class="pd-avatar" id="pd-avatar"></div>
+      <div>
+        <div class="pd-name" id="pd-name"></div>
+        <div class="pd-net">Net Worth: <b id="pd-net">&#8377;0</b></div>
+        <div class="pd-tags" id="pd-tags"></div>
+      </div>
+    </div>
+    <div class="update-form">
+      <h3>Update Cash Balance</h3>
+      <div class="cash-row"><label>Current Cash</label><div class="cash-val" id="pd-cash">&#8377;0</div></div>
+      <div class="form-row">
+        <div class="form-col"><label>New Balance (&#8377;)</label><input type="number" id="cash-input" placeholder="e.g. 5000" min="0"></div>
+        <button class="btn btn-sm" onclick="updateCash()">Update</button>
+      </div>
+    </div>
+    <div class="update-form">
+      <h3>Buy Shares</h3>
+      <div class="form-row">
+        <div class="form-col"><label>Company</label><select id="hold-company" onchange="onBuyCoChange()"></select></div>
+        <div class="form-col"><label>Shares to Buy</label><input type="number" id="hold-qty" placeholder="0" min="1" oninput="updateBuyCost()"><div class="price-hint" id="buy-price-hint"></div></div>
+      </div>
+      <div class="sell-cost-preview" id="buy-cost-preview"></div>
+      <div class="form-row" style="margin-top:8px;margin-bottom:0;"><button class="btn btn-sm" onclick="buyShares()" style="flex:1;">Buy &amp; Deduct Cash</button></div>
+    </div>
+    <div class="update-form">
+      <h3>Sell Shares</h3>
+      <div class="form-row">
+        <div class="form-col"><label>Company</label><select id="sell-company" onchange="onSellCoChange()"></select></div>
+        <div class="form-col"><label>Shares to Sell</label><input type="number" id="sell-qty" placeholder="0" min="1" oninput="updateSellCalc()"><div class="price-hint" id="sell-shares-calc"></div></div>
+      </div>
+      <div class="sell-cost-preview" id="sell-preview"></div>
+      <div class="form-row" style="margin-top:8px;margin-bottom:0;"><button class="btn btn-sm btn-sell" onclick="sellShares()" style="flex:1;">Sell &amp; Add Cash</button></div>
+    </div>
+    <h2>My Portfolio</h2>
+    <table class="holdings-table">
+      <thead><tr><th>Company</th><th>Shares</th><th>Cur. Price</th><th>Value</th><th>Status</th></tr></thead>
+      <tbody id="pd-holdings"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- BANK -->
+<div id="page-bank" class="page">
+  <h2>&#127918; Game Management</h2>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div>
+        <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Active Game</div>
+        <div id="bank-game-name" style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--accent);">None</div>
+        <div id="bank-game-sub" style="font-size:.73rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:3px;"></div>
+      </div>
+      <button class="btn" onclick="openGameOverlay()">Switch / New Game</button>
+    </div>
+    <div id="bank-all-games" style="font-size:.75rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;line-height:1.7;"></div>
+  </div>
+  <div id="bank-active-section" style="display:none;">
+    <h2>Add Player</h2>
+    <div class="admin-row">
+      <div class="form-col"><label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px;">Player Name</label><input type="text" id="new-player-name" placeholder="e.g. Rahul" maxlength="20"></div>
+      <div class="form-col"><label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px;">Starting Cash (&#8377;)</label><input type="number" id="new-player-cash" placeholder="e.g. 600000" value="600000" min="0"></div>
+      <button class="btn" onclick="addPlayer()">Add Player</button>
+    </div>
+    <div id="bank-players" style="margin-bottom:28px;"></div>
+    <h2>Update Share Prices</h2>
+    <div class="bank-grid" id="bank-prices"></div>
+    <div class="danger-zone">
+      <h3>&#9888; Danger Zone</h3>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:12px;">Permanently delete the active game. Cannot be undone.</p>
+      <button class="btn btn-danger btn-sm" onclick="deleteActiveGame()">Delete Active Game</button>
+    </div>
+  </div>
+  <div id="bank-no-game" class="empty" style="display:none;">No active game. Create one above.</div>
+</div>
+
+<!-- CALCULATOR -->
+<div id="page-calc" class="page">
+  <h2>Calculator</h2>
+  <div class="calc-price-picker">
+    <label>Select Company to Load Price</label>
+    <select id="cp-company" onchange="onCpChange()"></select>
+    <div class="calc-price-display" id="cp-display"></div>
+  </div>
+  <div class="calc-wrap">
+    <div class="calc-display">
+      <div class="calc-expr" id="calc-expr"></div>
+      <div class="calc-val" id="calc-val">0</div>
+    </div>
+    <div class="calc-btns">
+      <button class="calc-btn clr" onclick="calcAC()">AC</button>
+      <button class="calc-btn op" onclick="calcOp('+-')">&plusmn;</button>
+      <button class="calc-btn op" onclick="calcOp('%')">%</button>
+      <button class="calc-btn op" onclick="calcOp('/')">&#247;</button>
+      <button class="calc-btn" onclick="calcNum('7')">7</button>
+      <button class="calc-btn" onclick="calcNum('8')">8</button>
+      <button class="calc-btn" onclick="calcNum('9')">9</button>
+      <button class="calc-btn op" onclick="calcOp('*')">&#215;</button>
+      <button class="calc-btn" onclick="calcNum('4')">4</button>
+      <button class="calc-btn" onclick="calcNum('5')">5</button>
+      <button class="calc-btn" onclick="calcNum('6')">6</button>
+      <button class="calc-btn op" onclick="calcOp('-')">&minus;</button>
+      <button class="calc-btn" onclick="calcNum('1')">1</button>
+      <button class="calc-btn" onclick="calcNum('2')">2</button>
+      <button class="calc-btn" onclick="calcNum('3')">3</button>
+      <button class="calc-btn op" onclick="calcOp('+')">+</button>
+      <button class="calc-btn span2" onclick="calcNum('0')">0</button>
+      <button class="calc-btn" onclick="calcNum('.')">.</button>
+      <button class="calc-btn eq" onclick="calcEq()">=</button>
+    </div>
+  </div>
+  <h2>Quick Stock Calculator</h2>
+  <div class="update-form" style="max-width:400px;margin:0 auto;">
+    <h3>Trade Value</h3>
+    <div class="form-row" style="margin-bottom:12px;">
+      <div class="form-col"><label>Company</label><select id="qc-company" style="width:100%;"></select></div>
+      <div class="form-col"><label>Shares</label><input type="number" id="qc-shares" placeholder="e.g. 10" min="1"></div>
+    </div>
+    <button class="btn" onclick="calcTrade()" style="width:100%;">Calculate Value</button>
+    <div id="qc-result" style="margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:1rem;color:var(--accent);text-align:center;"></div>
+  </div>
+</div>
+
+<!-- Firebase compatibility SDKs keep the existing non-module JavaScript working. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<script src="stock_exchange.js"></script>
+</body>
+</html>
