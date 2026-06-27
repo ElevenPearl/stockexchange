@@ -84,13 +84,20 @@ let root=normalizeRoot(loadRoot());
 })();
 
 function applyCloudRoot(cloudRoot){
+  const detail=document.getElementById('player-detail');
+  const currentGame=gs();
+  const selectedPlayerName=currentPage==='players'&&detail&&detail.classList.contains('active')
+    ?((currentGame&&activePlayer!==null&&currentGame.players[activePlayer])
+      ?currentGame.players[activePlayer].name
+      :document.getElementById('pd-name').textContent)
+    :null;
   const nextRoot=normalizeRoot(cloudRoot);
   if(JSON.stringify(nextRoot)===JSON.stringify(root))return;
   applyingRemoteState=true;
   root=nextRoot;
   localStorage.setItem('se_root_v2',JSON.stringify(root));
   applyingRemoteState=false;
-  refreshFromCloud();
+  refreshFromCloud(selectedPlayerName);
   if(document.getElementById('game-overlay').classList.contains('show'))renderGameOverlay();
 }
 
@@ -230,13 +237,15 @@ function refreshAll(){
   else if(currentPage==='bank')renderBank();
   else if(currentPage==='calc')renderCalcPage();
 }
-function refreshFromCloud(){
+function refreshFromCloud(selectedPlayerName){
   updateNavBadge();
   if(currentPage==='market')renderMarket();
   else if(currentPage==='players'){
-    const selectedPlayer=activePlayer;
     const s=gs();
-    if(selectedPlayer!==null&&s&&s.players[selectedPlayer])openPlayer(selectedPlayer);
+    const selectedPlayer=s&&selectedPlayerName
+      ?s.players.findIndex(p=>p.name===selectedPlayerName)
+      :activePlayer;
+    if(selectedPlayer!==null&&selectedPlayer>=0&&s&&s.players[selectedPlayer])openPlayer(selectedPlayer);
     else renderLobby();
   }else if(currentPage==='bank')renderBank();
   else if(currentPage==='calc')renderCalcPage();
