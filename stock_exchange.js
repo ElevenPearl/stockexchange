@@ -22,7 +22,9 @@ const firebaseConfig={
   appId:'1:734720967052:web:b8f8d7bfadd2b89e5496a9'
 };
 const FIREBASE_PATH='stockExchange/root';
+const FIREBASE_INIT_PATH='stockExchange/initialized';
 let firebaseRootRef=null;
+let firebaseInitRef=null;
 let applyingRemoteState=false;
 
 function firebaseIsConfigured(){
@@ -81,6 +83,28 @@ let root=normalizeRoot(loadRoot());
   }catch(e){}
 })();
 
+function applyCloudRoot(cloudRoot){
+  const nextRoot=normalizeRoot(cloudRoot);
+  if(JSON.stringify(nextRoot)===JSON.stringify(root))return;
+  applyingRemoteState=true;
+  root=nextRoot;
+  localStorage.setItem('se_root_v2',JSON.stringify(root));
+  applyingRemoteState=false;
+  refreshFromCloud();
+  if(document.getElementById('game-overlay').classList.contains('show'))renderGameOverlay();
+}
+
+function listenForFirebaseChanges(){
+  firebaseRootRef.on('value',snapshot=>{
+    // A missing root is an authoritative empty game list after initialization.
+    applyCloudRoot(snapshot.exists()?snapshot.val():null);
+  },err=>{
+    console.error('Firebase listener failed:',err);
+    setSyncStatus('error','Permission denied');
+    toast('Firebase sync error: check your database rules.');
+  });
+}
+
 function initFirebaseSync(){
   if(!firebaseIsConfigured()){
     setSyncStatus('offline','Firebase setup needed');
@@ -98,34 +122,28 @@ function initFirebaseSync(){
     if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
     const database=firebase.database();
     firebaseRootRef=database.ref(FIREBASE_PATH);
+    firebaseInitRef=database.ref(FIREBASE_INIT_PATH);
 
     database.ref('.info/connected').on('value',snapshot=>{
       const online=snapshot.val()===true;
       setSyncStatus(online?'online':'connecting',online?'Cloud synced':'Connecting…');
     });
 
-    firebaseRootRef.once('value').then(snapshot=>{
-      if(snapshot.exists())return;
-      // The first connected device uploads any games already saved locally.
-      return firebaseRootRef.set(root);
-    }).catch(err=>{
+    Promise.all([firebaseRootRef.once('value'),firebaseInitRef.once('value')]).then(([rootSnapshot,initSnapshot])=>{
+      if(rootSnapshot.exists()){
+        // Upgrade databases created by the earlier sync code.
+        return firebaseInitRef.set(true).then(()=>applyCloudRoot(rootSnapshot.val()));
+      }
+      if(initSnapshot.val()===true){
+        // The cloud was deliberately emptied; never restore stale local games.
+        applyCloudRoot(null);
+        return;
+      }
+      // Only the very first connected device may migrate its local games.
+      return firebaseInitRef.set(true).then(()=>firebaseRootRef.set(root));
+    }).then(()=>listenForFirebaseChanges()).catch(err=>{
       console.error('Firebase initial sync failed:',err);
       setSyncStatus('error','Sync failed');
-    });
-
-    firebaseRootRef.on('value',snapshot=>{
-      const cloudRoot=snapshot.val();
-      if(!cloudRoot||JSON.stringify(cloudRoot)===JSON.stringify(root))return;
-      applyingRemoteState=true;
-      root=normalizeRoot(cloudRoot);
-      localStorage.setItem('se_root_v2',JSON.stringify(root));
-      applyingRemoteState=false;
-      refreshAll();
-      if(document.getElementById('game-overlay').classList.contains('show'))renderGameOverlay();
-    },err=>{
-      console.error('Firebase listener failed:',err);
-      setSyncStatus('error','Permission denied');
-      toast('Firebase sync error: check your database rules.');
     });
   }catch(err){
     console.error('Firebase initialization failed:',err);
@@ -210,6 +228,17 @@ function refreshAll(){
   if(currentPage==='market')renderMarket();
   else if(currentPage==='players')renderLobby();
   else if(currentPage==='bank')renderBank();
+  else if(currentPage==='calc')renderCalcPage();
+}
+function refreshFromCloud(){
+  updateNavBadge();
+  if(currentPage==='market')renderMarket();
+  else if(currentPage==='players'){
+    const selectedPlayer=activePlayer;
+    const s=gs();
+    if(selectedPlayer!==null&&s&&s.players[selectedPlayer])openPlayer(selectedPlayer);
+    else renderLobby();
+  }else if(currentPage==='bank')renderBank();
   else if(currentPage==='calc')renderCalcPage();
 }
 
