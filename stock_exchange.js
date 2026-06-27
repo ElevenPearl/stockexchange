@@ -45,16 +45,23 @@ function freshGame(name){
     players:[],log:[]};
 }
 function loadRoot(){try{return JSON.parse(localStorage.getItem('se_root_v2'));}catch{return null;}}
-function saveRoot(){
+function saveLocalRoot(){
   localStorage.setItem('se_root_v2',JSON.stringify(root));
+  localStorage.setItem('se_active_game_id',root.activeGameId||'');
+}
+function cloudRoot(){return{games:root.games};}
+function saveRoot(){
+  saveLocalRoot();
   if(firebaseRootRef&&!applyingRemoteState){
-    firebaseRootRef.set(root).catch(err=>{
+    // Game selection is deliberately excluded: it belongs to this device only.
+    firebaseRootRef.set(cloudRoot()).catch(err=>{
       console.error('Firebase save failed:',err);
       setSyncStatus('error','Sync failed');
       toast('Cloud sync failed. Changes are saved on this device.');
     });
   }
 }
+function saveActiveGame(){saveLocalRoot();}
 
 function normalizeRoot(state){
   state=state||{activeGameId:null,games:{}};
@@ -68,6 +75,8 @@ function normalizeRoot(state){
 }
 
 let root=normalizeRoot(loadRoot());
+const savedActiveGameId=localStorage.getItem('se_active_game_id');
+if(savedActiveGameId!==null)root.activeGameId=savedActiveGameId||null;
 
 // migrate old single-game data
 (function(){
@@ -91,11 +100,15 @@ function applyCloudRoot(cloudRoot){
       ?currentGame.players[activePlayer].name
       :document.getElementById('pd-name').textContent)
     :null;
+  const localActiveGameId=root.activeGameId;
   const nextRoot=normalizeRoot(cloudRoot);
+  nextRoot.activeGameId=localActiveGameId&&nextRoot.games[localActiveGameId]
+    ?localActiveGameId
+    :null;
   if(JSON.stringify(nextRoot)===JSON.stringify(root))return;
   applyingRemoteState=true;
   root=nextRoot;
-  localStorage.setItem('se_root_v2',JSON.stringify(root));
+  saveLocalRoot();
   applyingRemoteState=false;
   refreshFromCloud(selectedPlayerName);
   if(document.getElementById('game-overlay').classList.contains('show'))renderGameOverlay();
@@ -147,7 +160,7 @@ function initFirebaseSync(){
         return;
       }
       // Only the very first connected device may migrate its local games.
-      return firebaseInitRef.set(true).then(()=>firebaseRootRef.set(root));
+      return firebaseInitRef.set(true).then(()=>firebaseRootRef.set(cloudRoot()));
     }).then(()=>listenForFirebaseChanges()).catch(err=>{
       console.error('Firebase initial sync failed:',err);
       setSyncStatus('error','Sync failed');
@@ -189,7 +202,7 @@ function createGame(){
 }
 
 function switchGame(id){
-  root.activeGameId=id;saveRoot();closeGameOverlay();
+  root.activeGameId=id;saveActiveGame();closeGameOverlay();
   toast('Switched to "'+root.games[id].name+'"');refreshAll();
 }
 
