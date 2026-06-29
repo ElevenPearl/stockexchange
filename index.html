@@ -96,7 +96,7 @@
       </div>
     </div>
     <div class="update-form">
-      <h3>Buy Shares</h3>
+      <h3>Buy Shares at Market Price</h3>
       <div class="form-row">
         <div class="form-col"><label>Company</label><select id="hold-company" onchange="onBuyCoChange()"></select></div>
         <div class="form-col"><label>Shares to Buy</label><input type="number" id="hold-qty" placeholder="0" min="1" oninput="updateBuyCost()"><div class="price-hint" id="buy-price-hint"></div></div>
@@ -115,7 +115,7 @@
     </div>
     <h2>My Portfolio</h2>
     <table class="holdings-table">
-      <thead><tr><th>Company</th><th>Shares</th><th>Cur. Price</th><th>Value</th><th>Status</th></tr></thead>
+      <thead><tr><th>Company</th><th>Shares</th><th>Open Price</th><th>Cur. Price</th><th>Value</th><th>Status</th></tr></thead>
       <tbody id="pd-holdings"></tbody>
     </table>
   </div>
@@ -204,6 +204,6 @@
 <!-- Firebase compatibility SDKs keep the existing non-module JavaScript working. -->
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
-<script src="stock_exchange.js?v=4"></script>
+<script src="stock_exchange.js?v=7"></script>
 </body>
 </html>
