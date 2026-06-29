@@ -1,4 +1,4 @@
-const MAX_SHARES=200000,CHAIRMAN_MIN=50000,DIRECTOR_MIN=100000;
+const MAX_SHARES=200000,SHARE_LOT=1000,CHAIRMAN_MIN=50000,DIRECTOR_MIN=100000;
 const COMPANIES=[
   {name:'WOCKHARDT',start:20,color:'#a78bfa'},
   {name:'HDFC Bank',start:25,color:'#38bdf8'},
@@ -397,15 +397,16 @@ function showLobby(){
 function onBuyCoChange(){
   const s=gs();if(!s)return;
   const co=document.getElementById('hold-company').value;
-  const avail=MAX_SHARES-totalSharesInMarket(co);
-  document.getElementById('buy-price-hint').textContent='Market: \u20b9'+s.prices[co].cur+'/share \u00b7 Available: '+avail.toLocaleString('en-IN');
+  const available=Math.max(0,MAX_SHARES-totalSharesInMarket(co));
+  const purchasable=Math.floor(available/SHARE_LOT)*SHARE_LOT;
+  document.getElementById('buy-price-hint').textContent='Market: \u20b9'+s.prices[co].cur+'/share \u00b7 Purchasable: '+purchasable.toLocaleString('en-IN')+' (1,000-share lots)';
   document.getElementById('hold-qty').value='';document.getElementById('buy-cost-preview').textContent='';
 }
 
 function updateBuyCost(){
   const s=gs();if(!s)return;
   const co=document.getElementById('hold-company').value;const qty=Number(document.getElementById('hold-qty').value);
-  if(!Number.isInteger(qty)||qty<=0){document.getElementById('buy-cost-preview').textContent='';return;}
+  if(!Number.isInteger(qty)||qty<SHARE_LOT||qty%SHARE_LOT!==0){document.getElementById('buy-cost-preview').textContent='Enter 1,000 shares or a multiple of 1,000';return;}
   const price=s.prices[co].cur;const cost=qty*price;
   document.getElementById('buy-cost-preview').textContent='Cost: '+qty.toLocaleString('en-IN')+' \u00d7 \u20b9'+price+' = \u20b9'+cost.toLocaleString('en-IN');
 }
@@ -413,10 +414,11 @@ function updateBuyCost(){
 function buyShares(){
   const s=gs();if(!s)return;
   const co=document.getElementById('hold-company').value;const qty=Number(document.getElementById('hold-qty').value);
-  if(!Number.isInteger(qty)||qty<=0){toast('Enter valid shares to buy');return;}
+  if(!Number.isInteger(qty)||qty<SHARE_LOT||qty%SHARE_LOT!==0){toast('Minimum purchase is 1,000 shares, in multiples of 1,000');return;}
   const p=s.players[activePlayer];const price=s.prices[co].cur;const cost=qty*price;
-  const avail=MAX_SHARES-totalSharesInMarket(co);
-  if(qty>avail){toast('Only '+Math.max(0,avail).toLocaleString('en-IN')+' shares available for player purchases');return;}
+  const available=Math.max(0,MAX_SHARES-totalSharesInMarket(co));
+  const purchasable=Math.floor(available/SHARE_LOT)*SHARE_LOT;
+  if(qty>purchasable){toast('Only '+purchasable.toLocaleString('en-IN')+' shares are available in 1,000-share lots');return;}
   if(cost>p.cash){toast('Not enough cash (need \u20b9'+cost.toLocaleString('en-IN')+')');return;}
   p.holdings[co]=(p.holdings[co]||0)+qty;p.cash-=cost;
   addLog('<b>'+p.name+'</b> bought '+qty.toLocaleString('en-IN')+' \u00d7 '+co+' at market price \u20b9'+price+' = \u20b9'+cost.toLocaleString('en-IN'));
@@ -462,16 +464,19 @@ function sellShares(){
   toast('Sold '+qty.toLocaleString('en-IN')+' shares of '+co+' \u2713');
 }
 
-function updateCash(){
+function adjustCash(direction){
   const s=gs();if(!s)return;
-  const val=parseFloat(document.getElementById('cash-input').value);
-  if(isNaN(val)||val<0){toast('Enter a valid amount');return;}
-  const p=s.players[activePlayer];const old=p.cash;p.cash=val;
-  addLog('<b>'+p.name+'</b> cash updated: \u20b9'+old.toLocaleString('en-IN')+' \u2192 \u20b9'+val.toLocaleString('en-IN'));
+  const amount=parseFloat(document.getElementById('cash-input').value);
+  if(!Number.isFinite(amount)||amount<=0){toast('Enter a valid positive amount');return;}
+  const p=s.players[activePlayer];const old=p.cash;
+  if(direction<0&&amount>p.cash){toast('Cannot subtract more than the current cash balance');return;}
+  p.cash+=direction<0?-amount:amount;
+  const action=direction<0?'subtracted from':'added to';
+  addLog('\u20b9'+amount.toLocaleString('en-IN')+' '+action+' <b>'+p.name+'</b>\'s cash: \u20b9'+old.toLocaleString('en-IN')+' \u2192 \u20b9'+p.cash.toLocaleString('en-IN'));
   saveRoot();
-  document.getElementById('pd-cash').textContent='\u20b9'+val.toLocaleString('en-IN');
+  document.getElementById('pd-cash').textContent='\u20b9'+p.cash.toLocaleString('en-IN');
   document.getElementById('pd-net').textContent='\u20b9'+netWorth(p).toLocaleString('en-IN');
-  document.getElementById('cash-input').value='';toast('Cash updated \u2713');
+  document.getElementById('cash-input').value='';toast('Cash '+(direction<0?'subtracted':'added')+' \u2713');
 }
 
 // ── BANK ──
@@ -529,7 +534,7 @@ function renderBankPlayers(){
   if(!s.players.length){el.innerHTML='<div class="empty">No players yet.</div>';return;}
   const companyOptions=COMPANIES.map(c=>`<option>${c.name}</option>`).join('');
   el.innerHTML='<h2>Players &amp; Bank Actions</h2>'+s.players.map((p,i)=>
-    `<div class="bank-player-card"><div class="bank-player-head"><div class="lr-avatar" style="background:${p.color}22;color:${p.color}">${p.name[0].toUpperCase()}</div><div class="lr-name">${escH(p.name)}</div><span class="badge">\u20b9${p.cash.toLocaleString('en-IN')} cash</span><button class="btn btn-sm" onclick="bankCredit(${i})">+ \u20b91,00,000</button><button class="btn btn-sm btn-danger" onclick="removePlayer(${i})">Remove</button></div><div class="bank-player-actions"><div><label>Company</label><select id="bank-company-${i}">${companyOptions}</select></div><div><label>Shares (company max 2,00,000)</label><input type="number" id="bank-qty-${i}" min="1" max="${MAX_SHARES}" step="1" placeholder="e.g. 50000"></div><div><label>Price per share</label><input type="number" id="bank-price-${i}" step="any" placeholder="e.g. 12.50"></div><button class="btn btn-sm" onclick="bankGiveShares(${i})">Give Shares</button></div></div>`
+    `<div class="bank-player-card"><div class="bank-player-head"><div class="lr-avatar" style="background:${p.color}22;color:${p.color}">${p.name[0].toUpperCase()}</div><div class="lr-name">${escH(p.name)}</div><span class="badge">\u20b9${p.cash.toLocaleString('en-IN')} cash</span><button class="btn btn-sm" onclick="bankCredit(${i})">+ \u20b91,00,000</button><button class="btn btn-sm btn-danger" onclick="removePlayer(${i})">Remove</button></div><div class="bank-player-actions"><div><label>Company</label><select id="bank-company-${i}">${companyOptions}</select></div><div><label>Shares (lots of 1,000; max 2,00,000)</label><input type="number" id="bank-qty-${i}" min="${SHARE_LOT}" max="${MAX_SHARES}" step="${SHARE_LOT}" placeholder="e.g. 50000"></div><div><label>Price per share</label><input type="number" id="bank-price-${i}" step="any" placeholder="e.g. 12.50"></div><button class="btn btn-sm" onclick="bankGiveShares(${i})">Give Shares</button></div></div>`
   ).join('');
 }
 
@@ -545,9 +550,9 @@ function bankGiveShares(idx){
   const co=document.getElementById('bank-company-'+idx).value;
   const qty=Number(document.getElementById('bank-qty-'+idx).value);
   const price=parseFloat(document.getElementById('bank-price-'+idx).value);
-  if(!Number.isInteger(qty)||qty<=0){toast('Enter a valid positive share quantity');return;}
+  if(!Number.isInteger(qty)||qty<SHARE_LOT||qty%SHARE_LOT!==0){toast('Bank grants must be at least 1,000 shares and in multiples of 1,000');return;}
   if(!Number.isFinite(price)){toast('Enter any valid price');return;}
-  const available=Math.max(0,MAX_SHARES-totalSharesInMarket(co));
+  const available=Math.floor(Math.max(0,MAX_SHARES-totalSharesInMarket(co))/SHARE_LOT)*SHARE_LOT;
   if(qty>available){toast('Only '+available.toLocaleString('en-IN')+' shares of '+co+' remain (maximum 2,00,000)');return;}
   const p=s.players[idx];const cost=qty*price;
   p.holdings[co]=(p.holdings[co]||0)+qty;p.cash-=cost;
@@ -563,8 +568,12 @@ function removePlayer(idx){
 
 // ── CALC ──
 function renderCalcPage(){
-  const opts=COMPANIES.map(c=>`<option>${c.name}</option>`).join('');
-  document.getElementById('qc-company').innerHTML=opts;
+  const s=gs();
+  const opts=COMPANIES.map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
+  document.getElementById('qc-company').innerHTML=COMPANIES.map(c=>{
+    const market=s?s.prices[c.name]:{opening:c.start,cur:c.start};
+    return`<option value="${c.name}">${c.name} \u2014 \u20b9${market.cur} (Open \u20b9${market.opening})</option>`;
+  }).join('');
   document.getElementById('cp-company').innerHTML=opts;
   onCpChange();
 }
@@ -576,10 +585,23 @@ function onCpChange(){
 }
 function calcTrade(){
   const s=gs();if(!s)return;
-  const co=document.getElementById('qc-company').value;const qty=parseInt(document.getElementById('qc-shares').value);
-  if(isNaN(qty)||qty<=0){document.getElementById('qc-result').textContent='Enter valid shares';return;}
+  const co=document.getElementById('qc-company').value;
+  const amount=parseFloat(document.getElementById('qc-rupees').value);
+  const result=document.getElementById('qc-result');
+  if(!Number.isFinite(amount)||amount<0){result.textContent='Enter a valid rupee amount';return;}
   const price=s.prices[co].cur;
-  document.getElementById('qc-result').textContent=qty.toLocaleString('en-IN')+' \u00d7 \u20b9'+price+' = \u20b9'+(price*qty).toLocaleString('en-IN');
+  if(price<=0){result.textContent='Cannot calculate buying power while '+co+' is priced at \u20b9'+price;return;}
+  const affordable=Math.floor(amount/price);
+  const available=Math.max(0,MAX_SHARES-totalSharesInMarket(co));
+  const shares=Math.floor(Math.min(affordable,available)/SHARE_LOT)*SHARE_LOT;
+  if(shares===0){
+    if(available<SHARE_LOT){result.textContent='No complete 1,000-share lot is available for '+co;return;}
+    const minimumCost=SHARE_LOT*price;
+    result.innerHTML='Minimum purchase: <b>1,000 shares</b><br><span style="font-size:.78rem;color:var(--muted);">Need \u20b9'+minimumCost.toLocaleString('en-IN')+' &middot; \u20b9'+Math.max(0,minimumCost-amount).toLocaleString('en-IN')+' more</span>';
+    return;
+  }
+  const spent=shares*price;const remaining=amount-spent;
+  result.innerHTML='You can buy <b>'+shares.toLocaleString('en-IN')+'</b> shares ('+(shares/SHARE_LOT).toLocaleString('en-IN')+' lot'+(shares===SHARE_LOT?'':'s')+')<br><span style="font-size:.78rem;color:var(--muted);">\u20b9'+spent.toLocaleString('en-IN')+' used &middot; \u20b9'+remaining.toLocaleString('en-IN')+' remaining'+(affordable>available?' &middot; limited by market availability':'')+'</span>';
 }
 
 let cExpr='',cVal='0',cOp=null,cPrev=null,cJustEq=false;
