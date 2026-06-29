@@ -88,18 +88,19 @@
       </div>
     </div>
     <div class="update-form">
-      <h3>Update Cash Balance</h3>
+      <h3>Add or Subtract Cash</h3>
       <div class="cash-row"><label>Current Cash</label><div class="cash-val" id="pd-cash">&#8377;0</div></div>
       <div class="form-row">
-        <div class="form-col"><label>New Balance (&#8377;)</label><input type="number" id="cash-input" placeholder="e.g. 5000" min="0"></div>
-        <button class="btn btn-sm" onclick="updateCash()">Update</button>
+        <div class="form-col"><label>Amount (&#8377;)</label><input type="number" id="cash-input" placeholder="e.g. 5000" min="0" step="any"></div>
+        <button class="btn btn-sm" onclick="adjustCash(1)">+ Add</button>
+        <button class="btn btn-sm btn-sell" onclick="adjustCash(-1)">&minus; Subtract</button>
       </div>
     </div>
     <div class="update-form">
       <h3>Buy Shares at Market Price</h3>
       <div class="form-row">
         <div class="form-col"><label>Company</label><select id="hold-company" onchange="onBuyCoChange()"></select></div>
-        <div class="form-col"><label>Shares to Buy</label><input type="number" id="hold-qty" placeholder="0" min="1" oninput="updateBuyCost()"><div class="price-hint" id="buy-price-hint"></div></div>
+        <div class="form-col"><label>Shares to Buy (lots of 1,000)</label><input type="number" id="hold-qty" placeholder="e.g. 1000" min="1000" step="1000" oninput="updateBuyCost()"><div class="price-hint" id="buy-price-hint"></div></div>
       </div>
       <div class="sell-cost-preview" id="buy-cost-preview"></div>
       <div class="form-row" style="margin-top:8px;margin-bottom:0;"><button class="btn btn-sm" onclick="buyShares()" style="flex:1;">Buy &amp; Deduct Cash</button></div>
@@ -189,14 +190,14 @@
       <button class="calc-btn eq" onclick="calcEq()">=</button>
     </div>
   </div>
-  <h2>Quick Stock Calculator</h2>
+  <h2>Share Buying Calculator</h2>
   <div class="update-form" style="max-width:400px;margin:0 auto;">
-    <h3>Trade Value</h3>
+    <h3>Shares Purchasable</h3>
     <div class="form-row" style="margin-bottom:12px;">
-      <div class="form-col"><label>Company</label><select id="qc-company" style="width:100%;"></select></div>
-      <div class="form-col"><label>Shares</label><input type="number" id="qc-shares" placeholder="e.g. 10" min="1"></div>
+      <div class="form-col"><label>Share Price</label><select id="qc-company" style="width:100%;"></select></div>
+      <div class="form-col"><label>Amount (&#8377;)</label><input type="number" id="qc-rupees" placeholder="e.g. 10000" min="0" step="any"></div>
     </div>
-    <button class="btn" onclick="calcTrade()" style="width:100%;">Calculate Value</button>
+    <button class="btn" onclick="calcTrade()" style="width:100%;">Calculate Shares</button>
     <div id="qc-result" style="margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:1rem;color:var(--accent);text-align:center;"></div>
   </div>
 </div>
@@ -204,6 +205,6 @@
 <!-- Firebase compatibility SDKs keep the existing non-module JavaScript working. -->
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
-<script src="stock_exchange.js?v=7"></script>
+<script src="stock_exchange.js?v=11"></script>
 </body>
 </html>
