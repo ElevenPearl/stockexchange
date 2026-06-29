@@ -142,12 +142,12 @@
   .calc-price-picker label{font-size:.78rem;color:var(--muted);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}
   .calc-price-picker select{margin-bottom:8px;}
   .calc-price-display{font-family:'IBM Plex Mono',monospace;font-size:.9rem;color:var(--accent);text-align:center;}
-  .calc-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:340px;margin:0 auto 28px;}
+  .calc-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:340px;margin:0 auto 28px;touch-action:manipulation;}
   .calc-display{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;text-align:right;margin-bottom:14px;}
   .calc-expr{font-size:.75rem;color:var(--muted);min-height:18px;font-family:'IBM Plex Mono',monospace;}
   .calc-val{font-family:'IBM Plex Mono',monospace;font-size:2rem;font-weight:700;color:var(--text);word-break:break-all;}
   .calc-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
-  .calc-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:600;padding:14px;cursor:pointer;transition:background .15s,transform .1s;text-align:center;}
+  .calc-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:600;padding:14px;cursor:pointer;transition:background .15s,transform .1s;text-align:center;touch-action:manipulation;user-select:none;-webkit-user-select:none;}
   .calc-btn:hover{background:var(--border);}.calc-btn:active{transform:scale(.93);}
   .calc-btn.op{color:var(--accent);}
   .calc-btn.eq{background:var(--accent);color:#000;border-color:var(--accent);}
@@ -162,6 +162,11 @@
 
   .admin-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;}
   .admin-row .form-col{min-width:140px;}
+  .bank-player-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;}
+  .bank-player-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+  .bank-player-head .lr-name{min-width:120px;}
+  .bank-player-actions{display:grid;grid-template-columns:minmax(125px,1.4fr) minmax(90px,1fr) minmax(100px,1fr) auto;gap:8px;align-items:end;padding-top:12px;border-top:1px solid var(--border);}
+  .bank-player-actions label{display:block;color:var(--muted);font-size:.72rem;margin-bottom:4px;}
 
   .badge{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 8px;font-size:.72rem;font-family:'IBM Plex Mono',monospace;color:var(--muted);}
   .back-btn{background:none;border:none;color:var(--muted);font-size:.82rem;cursor:pointer;padding:0;margin-bottom:16px;display:flex;align-items:center;gap:6px;transition:color .2s;}
@@ -174,4 +179,4 @@
   ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
   #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 20px;font-size:.85rem;color:var(--text);z-index:999;transition:transform .3s ease;pointer-events:none;white-space:nowrap;}
   #toast.show{transform:translateX(-50%) translateY(0);}
-  @media(max-width:500px){nav{padding:0 8px;}.nav-logo{font-size:.75rem;padding-right:8px;}.nav-btn{padding:14px 8px;font-size:.75rem;}.page{padding:16px 12px;}.nav-game-badge span{max-width:70px;}}
+  @media(max-width:500px){nav{padding:0 8px;}.nav-logo{font-size:.75rem;padding-right:8px;}.nav-btn{padding:14px 8px;font-size:.75rem;}.page{padding:16px 12px;}.nav-game-badge span{max-width:70px;}.bank-player-actions{grid-template-columns:1fr 1fr;}.holdings-table{display:block;overflow-x:auto;white-space:nowrap;}}
