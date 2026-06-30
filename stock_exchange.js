@@ -556,7 +556,7 @@ function bankGiveShares(idx){
   if(qty>available){toast('Only '+available.toLocaleString('en-IN')+' shares of '+co+' remain (maximum 2,00,000)');return;}
   const p=s.players[idx];const value=qty*price;
   p.holdings[co]=(p.holdings[co]||0)+qty;
-  addLog('Bank allotted <b>'+p.name+'</b> '+qty.toLocaleString('en-IN')+' \u00d7 '+co+' @ \u20b9'+price+' (value \u20b9'+value.toLocaleString('en-IN')+'); cash unchanged');
+  addLog('Bank allotted <b>'+p.name+'</b> '+qty.toLocaleString('en-IN')+' \u00d7 '+co+' @ \u20b9'+price+' (value \u20b9'+value.toLocaleString('en-IN')+');
   saveRoot();renderBankPlayers();renderBankPrices();toast('Shares given to '+p.name+' \u2713');
 }
 
